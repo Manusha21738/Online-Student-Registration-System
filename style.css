@@ -1,0 +1,258 @@
+:root {
+    --primary: #f0abfc; /* Bright Pink/Lilac */
+    --secondary: #22d3ee; /* Bright Cyan */
+    --tertiary: #a855f7; /* Electric Purple */
+    --bg-base: #030712; /* Deep Space Black */
+    --glass-bg: rgba(255, 255, 255, 0.02);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    
+    /* New Button Colors */
+    --btn-start: #0ea5e9; /* Sky Blue */
+    --btn-end: #2563eb;   /* Royal Blue */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--bg-base);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Mesmerizing Animated Background */
+.bg-mesh {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: -1;
+    background: 
+        radial-gradient(circle at 15% 50%, rgba(168, 85, 247, 0.15), transparent 40%),
+        radial-gradient(circle at 85% 30%, rgba(34, 211, 238, 0.15), transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(240, 171, 252, 0.15), transparent 50%);
+    filter: blur(80px);
+    animation: meshPulse 15s ease-in-out infinite alternate;
+}
+
+@keyframes meshPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1) translate(2%, 2%); }
+    100% { transform: scale(1) translate(-2%, -2%); }
+}
+
+.container {
+    width: 100%;
+    max-width: 460px;
+    padding: 2rem;
+    z-index: 10;
+}
+
+/* Premium Glassmorphism */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    animation: floatUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes floatUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--text-main) 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.header h1 span {
+    background: linear-gradient(135deg, var(--secondary), var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.header p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 300;
+}
+
+/* Floating Label Inputs */
+.form-group {
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.8rem 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control::placeholder {
+    color: transparent;
+}
+
+.form-group label {
+    position: absolute;
+    top: 0.8rem;
+    left: 0;
+    font-size: 1rem;
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.form-control:focus ~ label,
+.form-control:not(:placeholder-shown) ~ label {
+    top: -1.2rem;
+    font-size: 0.75rem;
+    color: var(--secondary);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.form-control:focus {
+    outline: none;
+    border-bottom: 1px solid var(--secondary);
+    box-shadow: 0 10px 10px -10px rgba(34, 211, 238, 0.3);
+}
+
+/* Dynamic Submit Button */
+.btn-submit {
+    width: 100%;
+    padding: 1.1rem;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--btn-start), var(--btn-end));
+    color: white;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-submit::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 50%; height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
+    transform: skewX(-20deg);
+    transition: all 0.6s ease;
+}
+
+.btn-submit:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 15px 25px -5px rgba(14, 165, 233, 0.5);
+}
+
+.btn-submit:hover::after {
+    left: 150%;
+}
+
+.btn-submit:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Notifications */
+.message {
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.error {
+    background: rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    color: #fca5a5;
+}
+
+.message.success {
+    background: rgba(22, 163, 74, 0.1);
+    border: 1px solid rgba(22, 163, 74, 0.3);
+    color: #86efac;
+    padding: 2rem;
+    font-size: 1.1rem;
+}
+
+.btn-secondary {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    padding: 1rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    font-weight: 500;
+    margin-top: 2rem;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Loading Spinner */
+.spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
