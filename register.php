@@ -1,17 +1,24 @@
 <?php
+/**
+ * register.php
+ * 
+ * This script handles the server-side logic for the online student registration form.
+ * It receives form data, validates the input, checks for duplicate emails and student IDs,
+ * securely inserts the new student record into the database, and sends a verification email.
+ */
 session_start();
-// register.php - Handles the registration logic
 
-// Include the database connection file
+// Include the database connection file to use the $pdo object
 require_once 'db.php';
 
-// Check if the form was submitted via POST
+// Check if the form was submitted via POST method to ensure data security
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
-    // Store submitted data in session so it can be repopulated on error
+    // Store submitted data in session so it can be repopulated in the form if an error occurs
     $_SESSION['form_data'] = $_POST;
 
     // 1. Retrieve and sanitize form data
+    // trim() removes whitespace from both ends of a string to prevent accidental spaces
     $fullname = trim($_POST['fullname'] ?? '');
     $studentid = trim($_POST['studentid'] ?? '');
     $programid = trim($_POST['programid'] ?? '');
@@ -20,9 +27,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // 2. Validate mandatory fields
     if (empty($fullname) || empty($studentid) || empty($programid) || empty($email) || empty($yearofregister)) {
+        // Redirect back to the form with an error message
         header("Location: index.php?error=All mandatory fields must be filled.");
         exit();
     }
+
 
     // Basic email format validation
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -98,6 +107,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <body>
                 <div class='container'>
                     <div class='header'>
+                        <img src='http://localhost/Online-Student-Registration-System/vits.png' alt='VITS Logo' style='max-width: 120px; margin-bottom: 10px;'>
                         <h2>Welcome to the Student Portal!</h2>
                     </div>
                     <p style='color: #334155; font-size: 16px;'>Hello <strong>$fullname</strong>,</p>
