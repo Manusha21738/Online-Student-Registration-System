@@ -37,7 +37,7 @@ $yearofregister = htmlspecialchars($formData['yearofregister'] ?? date('Y'));
     <div class="container">
         <div class="glass-panel">
             <div class="header">
-                <img src="vits.png" alt="VITS Logo" class="logo" style="max-width: 150px; margin-bottom: 1rem;">
+                <img src="vits.png" alt="VITS Logo" class="logo" style="max-width: 100px; margin-bottom: 1rem;">
                 <h1>Student <span>Portal</span></h1>
                 <p>Register for your academic journey</p>
             </div>

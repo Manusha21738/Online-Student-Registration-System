@@ -84,7 +84,7 @@ if (isset($_GET['email']) && isset($_GET['token'])) {
     <div class="container">
         <div class="glass-panel" style="text-align: center;">
             <div class="header">
-                <img src="vits.png" alt="VITS Logo" class="logo" style="max-width: 150px; margin-bottom: 1rem;">
+                <img src="vits.png" alt="VITS Logo" class="logo" style="max-width: 100px; margin-bottom: 1rem;">
                 <h1>Verification <span>Status</span></h1>
             </div>
 
