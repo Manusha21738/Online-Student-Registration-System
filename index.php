@@ -3,16 +3,36 @@ session_start();
 require_once 'db.php';
 
 // Fetch courses from database for the home page list
+$grouped_courses = [];
+$grades_list = ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11 (O/L)', 'Advanced Level (A/L)'];
+
 try {
     $stmtHomeCourses = $pdo->query("
         SELECT c.*, m.name as module_name, t.fullname as teacher_name 
         FROM course c 
         JOIN module m ON c.module_id = m.id 
         LEFT JOIN teacher t ON c.teacher_id = t.teacherid 
-        ORDER BY c.id DESC
-        LIMIT 6
+        ORDER BY CASE 
+            WHEN c.grade_level = 'Grade 6' THEN 1
+            WHEN c.grade_level = 'Grade 7' THEN 2
+            WHEN c.grade_level = 'Grade 8' THEN 3
+            WHEN c.grade_level = 'Grade 9' THEN 4
+            WHEN c.grade_level = 'Grade 10' THEN 5
+            WHEN c.grade_level = 'Grade 11 (O/L)' THEN 6
+            WHEN c.grade_level = 'Advanced Level (A/L)' THEN 7
+            ELSE 8 
+        END ASC, c.title ASC
     ");
     $home_courses = $stmtHomeCourses->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($home_courses as $c) {
+        $gl = $c['grade_level'] ?: 'Grade 11 (O/L)';
+        $subject = 'ICT'; // Default
+        if (strpos(strtolower($c['module_name']), 'math') !== false || strpos(strtolower($c['title']), 'math') !== false || strpos(strtolower($c['title']), 'matric') !== false || strpos(strtolower($c['title']), 'graph') !== false) {
+            $subject = 'Mathematics';
+        }
+        $grouped_courses[$gl][$subject][] = $c;
+    }
 } catch (PDOException $e) {
     $home_courses = [];
 }
@@ -84,7 +104,11 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
             <h1>Learn without limits</h1>
             <p>Start, switch, or advance your career with more than 10,000 courses, Professional Certificates, and degrees from world-class universities and companies.</p>
             <div class="lp-hero-cta">
-                <a href="signup.php" class="lp-btn lp-btn-primary lp-btn-large">Join for Free</a>
+                <?php if (!empty($dashboard_link)): ?>
+                    <a href="<?php echo htmlspecialchars($dashboard_link); ?>" class="lp-btn lp-btn-primary lp-btn-large">Go to Dashboard</a>
+                <?php else: ?>
+                    <a href="signup.php" class="lp-btn lp-btn-primary lp-btn-large">Join for Free</a>
+                <?php endif; ?>
                 <a href="#courses" class="lp-btn lp-btn-outline lp-btn-large">Explore Courses</a>
             </div>
         </div>
@@ -105,91 +129,154 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
         </div>
     </section>
 
-    <!-- Broad Selection of Courses -->
+    <!-- Broad Selection of Courses / Syllabus Explorer -->
     <section id="courses" class="lp-courses-section">
-        <h2>A broad selection of courses</h2>
-        <p class="lp-courses-subtitle">Choose from over 100,000 online video courses with new additions published every month</p>
+        <h2>Syllabus Explorer</h2>
+        <p class="lp-courses-subtitle">Explore curriculum courses from Grade 6 to Advanced Level, mapped for school students.</p>
         
-        <div class="lp-course-grid">
-            <?php if (empty($home_courses)): ?>
-                <!-- Fallback to static courses if none in DB -->
-                <a href="signup.php" class="lp-course-card">
-                    <div class="lp-course-img-wrapper">
-                        <img src="assets/course_1_1779098507828.png" alt="Web Development">
-                    </div>
-                    <div class="lp-course-info">
-                        <h3>The Complete Web Development Bootcamp</h3>
-                        <p class="lp-instructor">Dr. Angela Yu</p>
-                        <div class="lp-rating">
-                            <span class="lp-rating-number">4.7</span>
-                            <span class="lp-stars">⭐⭐⭐⭐⭐</span>
-                            <span class="lp-reviews">(291,481)</span>
-                        </div>
-                        <div class="lp-price">$14.99 <span>$84.99</span></div>
-                        <span class="lp-bestseller">Bestseller</span>
-                    </div>
-                </a>
-                
-                <a href="signup.php" class="lp-course-card">
-                    <div class="lp-course-img-wrapper">
-                        <img src="assets/course_2_1779098623204.png" alt="Data Science">
-                    </div>
-                    <div class="lp-course-info">
-                        <h3>Machine Learning A-Z™: AI, Python & R</h3>
-                        <p class="lp-instructor">Kirill Eremenko, Hadelin de Ponteves</p>
-                        <div class="lp-rating">
-                            <span class="lp-rating-number">4.5</span>
-                            <span class="lp-stars">⭐⭐⭐⭐½</span>
-                            <span class="lp-reviews">(162,109)</span>
-                        </div>
-                        <div class="lp-price">$16.99 <span>$99.99</span></div>
-                    </div>
-                </a>
-            <?php else: ?>
+        <!-- Grades Tabs Selector -->
+        <div class="syllabus-tabs-container">
+            <div class="syllabus-tabs">
                 <?php 
-                $img_placeholders = [
-                    'assets/course_1_1779098507828.png',
-                    'assets/course_2_1779098623204.png',
-                    'assets/course_3_1779098678589.png'
-                ];
-                $idx = 0;
-                foreach ($home_courses as $c): 
-                    $img = $img_placeholders[$idx % count($img_placeholders)];
-                    $idx++;
-                    
-                    // Link to register if not logged in, or details if logged in
-                    $link = 'signup.php';
-                    if (isset($_SESSION['role'])) {
-                        if ($_SESSION['role'] === 'student') {
-                            $link = 'profile.php?tab=learning&course_id=' . $c['id'];
-                        } elseif ($_SESSION['role'] === 'teacher') {
-                            $link = 'teacher_dashboard.php?tab=lms';
-                        } else {
-                            $link = 'admin_dashboard.php?tab=lms';
-                        }
-                    }
+                $first_grade = true;
+                foreach ($grades_list as $grade): 
+                    $grade_safe = preg_replace('/[^a-zA-Z0-9]/', '', $grade);
                 ?>
-                    <a href="<?php echo htmlspecialchars($link); ?>" class="lp-course-card">
-                        <div class="lp-course-img-wrapper">
-                            <img src="<?php echo $img; ?>" alt="<?php echo htmlspecialchars($c['title']); ?>">
-                        </div>
-                        <div class="lp-course-info">
-                            <span class="lms-badge lms-badge-module" style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-block; margin-bottom: 5px;"><?php echo htmlspecialchars($c['module_name']); ?></span>
-                            <h3><?php echo htmlspecialchars($c['title']); ?></h3>
-                            <p class="lp-instructor">Instructor: <?php echo htmlspecialchars($c['teacher_name'] ?? 'To be assigned'); ?></p>
-                            <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-top: 5px;"><?php echo htmlspecialchars(substr($c['description'] ?? '', 0, 100)) . (strlen($c['description'] ?? '') > 100 ? '...' : ''); ?></p>
-                            <div class="lp-rating" style="margin-top: 10px;">
-                                <span class="lp-rating-number">4.8</span>
-                                <span class="lp-stars">⭐⭐⭐⭐⭐</span>
-                                <span class="lp-reviews">(Dynamic Course)</span>
-                            </div>
-                            <div class="lp-price">Free <span>$99.00</span></div>
-                        </div>
-                    </a>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                    <button class="syllabus-tab-btn <?php echo $first_grade ? 'active' : ''; ?>" onclick="openSyllabusGrade(event, '<?php echo $grade_safe; ?>')">
+                        <?php echo htmlspecialchars($grade); ?>
+                    </button>
+                <?php 
+                    $first_grade = false;
+                endforeach; 
+                ?>
+            </div>
         </div>
+
+        <!-- Grade Content Sections -->
+        <?php 
+        $first_grade = true;
+        foreach ($grades_list as $grade): 
+            $grade_safe = preg_replace('/[^a-zA-Z0-9]/', '', $grade);
+            $grade_data = $grouped_courses[$grade] ?? [];
+        ?>
+            <div id="grade-panel-<?php echo $grade_safe; ?>" class="syllabus-grade-panel" style="display: <?php echo $first_grade ? 'block' : 'none'; ?>;">
+                
+                <div class="syllabus-subjects-grid">
+                    
+                    <!-- ICT Column -->
+                    <div class="syllabus-subject-column">
+                        <div class="syllabus-subject-header">
+                            <span class="subject-icon">💻</span>
+                            <h3>Information & Communication Technology</h3>
+                        </div>
+                        <div class="syllabus-courses-list">
+                            <?php 
+                            $ict_courses = $grade_data['ICT'] ?? [];
+                            if (empty($ict_courses)):
+                            ?>
+                                <div class="syllabus-empty-state">No ICT courses available for this grade yet.</div>
+                            <?php else: ?>
+                                <?php foreach ($ict_courses as $c): 
+                                    $link = 'signup.php';
+                                    if (isset($_SESSION['role'])) {
+                                        if ($_SESSION['role'] === 'student') {
+                                            $link = 'profile.php?tab=learning&course_id=' . $c['id'];
+                                        } elseif ($_SESSION['role'] === 'teacher') {
+                                            $link = 'teacher_dashboard.php?tab=lms';
+                                        } else {
+                                            $link = 'admin_dashboard.php?tab=lms';
+                                        }
+                                    }
+                                ?>
+                                    <div class="syllabus-course-row-card">
+                                        <div class="row-card-body">
+                                            <h4><?php echo htmlspecialchars($c['title']); ?></h4>
+                                            <p><?php echo htmlspecialchars($c['description']); ?></p>
+                                            <div class="row-card-meta">
+                                                <span class="row-price <?php echo $c['is_paid'] ? 'paid' : 'free'; ?>">
+                                                    <?php echo $c['is_paid'] ? 'LKR ' . number_format($c['price'], 2) : 'Free'; ?>
+                                                </span>
+                                                <span class="row-instructor">Instructor: <?php echo htmlspecialchars($c['teacher_name'] ?? 'To be assigned'); ?></span>
+                                            </div>
+                                        </div>
+                                        <a href="<?php echo htmlspecialchars($link); ?>" class="syllabus-row-btn">
+                                            <?php echo $c['is_paid'] ? 'Enroll & Pay' : 'Start Free'; ?>
+                                        </a>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Mathematics Column -->
+                    <div class="syllabus-subject-column">
+                        <div class="syllabus-subject-header">
+                            <span class="subject-icon">📐</span>
+                            <h3>Mathematics</h3>
+                        </div>
+                        <div class="syllabus-courses-list">
+                            <?php 
+                            $math_courses = $grade_data['Mathematics'] ?? [];
+                            if (empty($math_courses)):
+                            ?>
+                                <div class="syllabus-empty-state">No Mathematics courses available for this grade yet.</div>
+                            <?php else: ?>
+                                <?php foreach ($math_courses as $c): 
+                                    $link = 'signup.php';
+                                    if (isset($_SESSION['role'])) {
+                                        if ($_SESSION['role'] === 'student') {
+                                            $link = 'profile.php?tab=learning&course_id=' . $c['id'];
+                                        } elseif ($_SESSION['role'] === 'teacher') {
+                                            $link = 'teacher_dashboard.php?tab=lms';
+                                        } else {
+                                            $link = 'admin_dashboard.php?tab=lms';
+                                        }
+                                    }
+                                ?>
+                                    <div class="syllabus-course-row-card">
+                                        <div class="row-card-body">
+                                            <h4><?php echo htmlspecialchars($c['title']); ?></h4>
+                                            <p><?php echo htmlspecialchars($c['description']); ?></p>
+                                            <div class="row-card-meta">
+                                                <span class="row-price <?php echo $c['is_paid'] ? 'paid' : 'free'; ?>">
+                                                    <?php echo $c['is_paid'] ? 'LKR ' . number_format($c['price'], 2) : 'Free'; ?>
+                                                </span>
+                                                <span class="row-instructor">Instructor: <?php echo htmlspecialchars($c['teacher_name'] ?? 'To be assigned'); ?></span>
+                                            </div>
+                                        </div>
+                                        <a href="<?php echo htmlspecialchars($link); ?>" class="syllabus-row-btn">
+                                            <?php echo $c['is_paid'] ? 'Enroll & Pay' : 'Start Free'; ?>
+                                        </a>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        <?php 
+            $first_grade = false;
+        endforeach; 
+        ?>
     </section>
+
+    <script>
+    function openSyllabusGrade(evt, gradeSafe) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("syllabus-grade-panel");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("syllabus-tab-btn");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById("grade-panel-" + gradeSafe).style.display = "block";
+        evt.currentTarget.classList.add("active");
+    }
+    </script>
 
     <!-- Footer -->
     <footer class="lp-footer">

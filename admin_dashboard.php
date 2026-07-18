@@ -15,8 +15,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 }
 
 $userid = $_SESSION['user_id'];
-$success_msg = '';
-$error_msg = '';
+$success_msg = $_GET['success'] ?? '';
+$error_msg = $_GET['error'] ?? '';
 
 // Handle Logout
 if (isset($_POST['logout'])) {
@@ -124,16 +124,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_course'])) {
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $module_id = (int)($_POST['module_id'] ?? 0);
+    $grade_level = trim($_POST['grade_level'] ?? 'Grade 11 (O/L)');
     $teacher_id = trim($_POST['teacher_id'] ?? '');
     if ($teacher_id === '') $teacher_id = null;
+    
+    $is_paid = (int)($_POST['is_paid'] ?? 0);
+    $price = floatval($_POST['price'] ?? 0.00);
+    if ($is_paid === 0) {
+        $price = 0.00;
+    }
     
     if (empty($title) || $module_id <= 0) {
         $error_msg = "Course title and module are required.";
     } else {
         try {
-            $stmt = $pdo->prepare("INSERT INTO course (module_id, teacher_id, title, description) VALUES (:mid, :tid, :title, :desc)");
-            $stmt->execute([':mid' => $module_id, ':tid' => $teacher_id, ':title' => $title, ':desc' => $description]);
+            $stmt = $pdo->prepare("INSERT INTO course (module_id, grade_level, teacher_id, title, description, is_paid, price) VALUES (:mid, :grade, :tid, :title, :desc, :is_paid, :price)");
+            $stmt->execute([':mid' => $module_id, ':grade' => $grade_level, ':tid' => $teacher_id, ':title' => $title, ':desc' => $description, ':is_paid' => $is_paid, ':price' => $price]);
             $success_msg = "Course created successfully!";
+            header("Location: admin_dashboard.php?tab=lms&success=" . urlencode($success_msg));
+            exit();
         } catch (PDOException $e) {
             $error_msg = "Failed to create course: " . $e->getMessage();
         }
@@ -146,14 +155,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_course'])) {
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $module_id = (int)($_POST['module_id'] ?? 0);
+    $grade_level = trim($_POST['grade_level'] ?? 'Grade 11 (O/L)');
+    $teacher_id = trim($_POST['teacher_id'] ?? '');
+    if ($teacher_id === '') $teacher_id = null;
+    
+    $is_paid = (int)($_POST['is_paid'] ?? 0);
+    $price = floatval($_POST['price'] ?? 0.00);
+    if ($is_paid === 0) {
+        $price = 0.00;
+    }
     
     if ($cid <= 0 || empty($title) || $module_id <= 0) {
-        $error_msg = "All course fields are required.";
+        $error_msg = "Course title and module are required.";
     } else {
         try {
-            $stmt = $pdo->prepare("UPDATE course SET module_id = :mid, title = :title, description = :desc WHERE id = :cid");
-            $stmt->execute([':mid' => $module_id, ':title' => $title, ':desc' => $description, ':cid' => $cid]);
+            $stmt = $pdo->prepare("UPDATE course SET module_id = :mid, grade_level = :grade, teacher_id = :tid, title = :title, description = :desc, is_paid = :is_paid, price = :price WHERE id = :cid");
+            $stmt->execute([
+                ':mid' => $module_id,
+                ':grade' => $grade_level,
+                ':tid' => $teacher_id,
+                ':title' => $title,
+                ':desc' => $description,
+                ':is_paid' => $is_paid,
+                ':price' => $price,
+                ':cid' => $cid
+            ]);
             $success_msg = "Course updated successfully!";
+            header("Location: admin_dashboard.php?tab=lms&success=" . urlencode($success_msg));
+            exit();
         } catch (PDOException $e) {
             $error_msg = "Failed to update course: " . $e->getMessage();
         }
@@ -168,6 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_course'])) {
             $stmt = $pdo->prepare("DELETE FROM course WHERE id = :cid");
             $stmt->execute([':cid' => $cid]);
             $success_msg = "Course deleted successfully!";
+            header("Location: admin_dashboard.php?tab=lms&success=" . urlencode($success_msg));
+            exit();
         } catch (PDOException $e) {
             $error_msg = "Failed to delete course: " . $e->getMessage();
         }
@@ -273,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_lesson'])) {
     }
 }
 
-// Enroll Student in Course
+// Enroll Student in Course (Directly approved)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enroll_student'])) {
     $sid = trim($_POST['student_id'] ?? '');
     $cid = (int)($_POST['course_id'] ?? 0);
@@ -282,11 +313,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enroll_student'])) {
         $error_msg = "Please select both a student and a course.";
     } else {
         try {
-            $stmt = $pdo->prepare("INSERT INTO student_course (student_id, course_id) VALUES (:sid, :cid) ON DUPLICATE KEY UPDATE student_id=student_id");
+            $stmt = $pdo->prepare("INSERT INTO student_course (student_id, course_id, status) VALUES (:sid, :cid, 'approved') ON DUPLICATE KEY UPDATE status='approved'");
             $stmt->execute([':sid' => $sid, ':cid' => $cid]);
             $success_msg = "Student enrolled in course successfully!";
         } catch (PDOException $e) {
             $error_msg = "Failed to enroll student: " . $e->getMessage();
+        }
+    }
+}
+
+// Approve Student Enrollment Request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_enrollment'])) {
+    $sid = trim($_POST['student_id'] ?? '');
+    $cid = (int)($_POST['course_id'] ?? 0);
+    if (!empty($sid) && $cid > 0) {
+        try {
+            $stmt = $pdo->prepare("UPDATE student_course SET status = 'approved' WHERE student_id = :sid AND course_id = :cid");
+            $stmt->execute([':sid' => $sid, ':cid' => $cid]);
+            $success_msg = "Course enrollment approved successfully!";
+        } catch (PDOException $e) {
+            $error_msg = "Failed to approve enrollment: " . $e->getMessage();
+        }
+    }
+}
+
+// Reject Student Enrollment Request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_enrollment'])) {
+    $sid = trim($_POST['student_id'] ?? '');
+    $cid = (int)($_POST['course_id'] ?? 0);
+    if (!empty($sid) && $cid > 0) {
+        try {
+            $stmt = $pdo->prepare("DELETE FROM student_course WHERE student_id = :sid AND course_id = :cid");
+            $stmt->execute([':sid' => $sid, ':cid' => $cid]);
+            $success_msg = "Course enrollment request rejected.";
+        } catch (PDOException $e) {
+            $error_msg = "Failed to reject enrollment: " . $e->getMessage();
         }
     }
 }
@@ -321,6 +382,19 @@ $stmtPendM = $pdo->query("
     ORDER BY t.fullname ASC
 ");
 $pending_modules = $stmtPendM->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch pending student course requests
+$stmtPendEnroll = $pdo->query("
+    SELECT sc.student_id, sc.course_id, sc.status, sc.payment_slip, sc.enrolled_at,
+           s.fullname as student_name, s.email as student_email,
+           c.title as course_title, c.price as course_price, c.is_paid
+    FROM student_course sc
+    JOIN student s ON sc.student_id = s.studentid
+    JOIN course c ON sc.course_id = c.id
+    WHERE sc.status = 'pending'
+    ORDER BY sc.enrolled_at DESC
+");
+$pending_enrollments = $stmtPendEnroll->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch approved teachers list
 $stmtAppT = $pdo->query("SELECT * FROM teacher WHERE is_approved = 1 ORDER BY fullname ASC");
@@ -387,7 +461,7 @@ foreach ($enrolled_students_raw as $row) {
     </header>
 
     <!-- Dashboard Hero Banner -->
-    <div class="dashboard-header" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+    <div class="dashboard-header" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%), url('assets/dashboard_cover.jpg') no-repeat center center; background-size: cover;">
         <div class="dashboard-container profile-hero">
             <div class="profile-avatar-container">
                 <div class="profile-avatar" style="background: var(--secondary);">
@@ -513,6 +587,85 @@ foreach ($enrolled_students_raw as $row) {
                 </div>
             </div>
 
+            <!-- Pending Student Course Enrollments -->
+            <div class="dashboard-card" style="grid-column: span 2;">
+                <div class="dashboard-card-header">
+                    <h3 style="font-family: 'Outfit', sans-serif;">Pending Student Course Enrollments (<?php echo count($pending_enrollments); ?>)</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Review student requests and verify bank transfer slip attachments before activating course enrollment.</p>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <?php if (empty($pending_enrollments)): ?>
+                        <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 20px;">No pending course enrollment requests.</p>
+                    <?php else: ?>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: 'Inter', sans-serif; font-size: 14px;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-main); font-weight: 600;">
+                                        <th style="padding: 12px;">Student Details</th>
+                                        <th style="padding: 12px;">Course Details</th>
+                                        <th style="padding: 12px;">Price (LKR)</th>
+                                        <th style="padding: 12px;">Payment Slip</th>
+                                        <th style="padding: 12px;">Request Date</th>
+                                        <th style="padding: 12px; text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($pending_enrollments as $pe): ?>
+                                        <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
+                                            <td style="padding: 12px;">
+                                                <div style="font-weight: 600; color: var(--text-main);"><?php echo htmlspecialchars($pe['student_name']); ?></div>
+                                                <div style="font-size: 12px;">ID: <?php echo htmlspecialchars($pe['student_id']); ?></div>
+                                                <div style="font-size: 12px;"><?php echo htmlspecialchars($pe['student_email']); ?></div>
+                                            </td>
+                                            <td style="padding: 12px;">
+                                                <div style="font-weight: 500; color: var(--text-main);"><?php echo htmlspecialchars($pe['course_title']); ?></div>
+                                                <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-top: 2px;">
+                                                    <?php echo $pe['is_paid'] ? 'Paid Course' : 'Free Course'; ?>
+                                                </div>
+                                            </td>
+                                            <td style="padding: 12px; font-weight: 600; color: var(--text-main);">
+                                                <?php echo $pe['is_paid'] ? number_format($pe['course_price'], 2) : 'Free'; ?>
+                                            </td>
+                                            <td style="padding: 12px;">
+                                                <?php if (!empty($pe['payment_slip'])): ?>
+                                                    <a href="uploads/<?php echo htmlspecialchars($pe['payment_slip']); ?>" target="_blank" class="lp-btn lp-btn-outline" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; text-decoration: none; border-color: var(--secondary); color: var(--secondary); background: transparent;">
+                                                        📄 View Slip
+                                                    </a>
+                                                <?php else: ?>
+                                                    <?php if ($pe['is_paid']): ?>
+                                                        <span style="color: #ef4444; font-weight: 600; font-size: 12px;">⚠️ No slip uploaded</span>
+                                                    <?php else: ?>
+                                                        <span style="color: var(--text-muted); font-style: italic; font-size: 12px;">Not required</span>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td style="padding: 12px; font-size: 13px;">
+                                                <?php echo date('Y-m-d H:i', strtotime($pe['enrolled_at'])); ?>
+                                            </td>
+                                            <td style="padding: 12px;">
+                                                <div style="display: flex; gap: 8px; justify-content: center;">
+                                                    <form action="admin_dashboard.php?tab=registrations" method="POST" style="margin: 0;">
+                                                        <input type="hidden" name="student_id" value="<?php echo htmlspecialchars($pe['student_id']); ?>">
+                                                        <input type="hidden" name="course_id" value="<?php echo $pe['course_id']; ?>">
+                                                        <button type="submit" name="approve_enrollment" class="lp-btn lp-btn-primary" style="padding: 6px 14px; font-size: 12px; border: none; cursor: pointer;">Approve</button>
+                                                    </form>
+                                                    <form action="admin_dashboard.php?tab=registrations" method="POST" style="margin: 0;">
+                                                        <input type="hidden" name="student_id" value="<?php echo htmlspecialchars($pe['student_id']); ?>">
+                                                        <input type="hidden" name="course_id" value="<?php echo $pe['course_id']; ?>">
+                                                        <button type="submit" name="reject_enrollment" class="lp-btn lp-btn-outline" style="padding: 6px 14px; font-size: 12px; border-color: #ef4444; color: #ef4444; background: transparent; cursor: pointer;">Reject</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
             <!-- Approved Teachers & Modules Overview -->
             <div class="dashboard-card" style="grid-column: span 2;">
                 <div class="dashboard-card-header">
@@ -599,6 +752,19 @@ foreach ($enrolled_students_raw as $row) {
                             </select>
                         </div>
                         <div class="lms-form-group">
+                            <label for="grade_level">Class / Grade Level</label>
+                            <select id="grade_level" name="grade_level" required class="lms-select">
+                                <option value="" disabled selected>Select Grade Level</option>
+                                <option value="Grade 6">Grade 6</option>
+                                <option value="Grade 7">Grade 7</option>
+                                <option value="Grade 8">Grade 8</option>
+                                <option value="Grade 9">Grade 9</option>
+                                <option value="Grade 10">Grade 10</option>
+                                <option value="Grade 11 (O/L)">Grade 11 (O/L)</option>
+                                <option value="Advanced Level (A/L)">Advanced Level (A/L)</option>
+                            </select>
+                        </div>
+                        <div class="lms-form-group">
                             <label for="description">Course Description</label>
                             <textarea id="description" name="description" rows="3" class="lms-textarea" placeholder="Provide a brief course description..."></textarea>
                         </div>
@@ -610,6 +776,17 @@ foreach ($enrolled_students_raw as $row) {
                                     <option value="<?php echo htmlspecialchars($t['teacherid']); ?>"><?php echo htmlspecialchars($t['fullname']); ?> (<?php echo htmlspecialchars($t['teacherid']); ?>)</option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+                        <div class="lms-form-group">
+                            <label for="is_paid">Payment Type</label>
+                            <select id="is_paid" name="is_paid" class="lms-select" onchange="togglePriceField(this.value, 'price_group', 'price')">
+                                <option value="0" selected>Free</option>
+                                <option value="1">Paid</option>
+                            </select>
+                        </div>
+                        <div class="lms-form-group" id="price_group" style="display: none;">
+                            <label for="price">Price (Sri Lankan Rupees - LKR)</label>
+                            <input type="number" id="price" name="price" class="lms-input" min="0" step="0.01" placeholder="e.g. 1500.00">
                         </div>
                         <button type="submit" name="add_course" class="lp-btn lp-btn-primary" style="border: none; cursor: pointer; width: 100%;">Create Course</button>
                     </form>
@@ -700,6 +877,10 @@ foreach ($enrolled_students_raw as $row) {
                                     <div style="display: flex; justify-content: space-between; align-items: start; gap: 15px;">
                                         <div>
                                             <span class="lms-badge lms-badge-module" style="margin-bottom: 6px;"><?php echo htmlspecialchars($c['module_name']); ?></span>
+                                            <span class="lms-badge" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: 5px; display: inline-block; margin-bottom: 6px;"><?php echo htmlspecialchars($c['grade_level'] ?? 'Grade 11 (O/L)'); ?></span>
+                                            <span class="lms-badge" style="background: <?php echo $c['is_paid'] ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)'; ?>; color: <?php echo $c['is_paid'] ? 'var(--secondary)' : '#10b981'; ?>; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: 5px; display: inline-block; margin-bottom: 6px;">
+                                                <?php echo $c['is_paid'] ? 'LKR ' . number_format($c['price'], 2) : 'Free'; ?>
+                                            </span>
                                             <h4 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 18px; color: var(--text-main);"><?php echo htmlspecialchars($c['title']); ?></h4>
                                             <p style="font-size: 12px; color: var(--primary); font-weight: 600; margin-top: 4px; margin-bottom: 2px;">
                                                 Instructor: <?php echo htmlspecialchars($c['teacher_name'] ?? 'Unassigned'); ?>
@@ -708,10 +889,13 @@ foreach ($enrolled_students_raw as $row) {
                                                 <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px; line-height: 1.4;"><?php echo htmlspecialchars($c['description']); ?></p>
                                             <?php endif; ?>
                                         </div>
-                                        <form action="admin_dashboard.php?tab=lms" method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to delete this course and all its lessons?');">
-                                            <input type="hidden" name="course_id" value="<?php echo $c['id']; ?>">
-                                            <button type="submit" name="delete_course" class="lp-btn lp-btn-outline" style="border-color: #ef4444; color: #ef4444; font-size: 12px; padding: 4px 10px; cursor: pointer; background: transparent;">Delete Course</button>
-                                        </form>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button onclick="openEditCourseModal(<?php echo htmlspecialchars(json_encode($c)); ?>)" class="lp-btn lp-btn-outline" style="border-color: var(--primary); color: var(--primary); font-size: 12px; padding: 4px 10px; cursor: pointer; background: transparent;">Edit</button>
+                                            <form action="admin_dashboard.php?tab=lms" method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to delete this course and all its lessons?');">
+                                                <input type="hidden" name="course_id" value="<?php echo $c['id']; ?>">
+                                                <button type="submit" name="delete_course" class="lp-btn lp-btn-outline" style="border-color: #ef4444; color: #ef4444; font-size: 12px; padding: 4px 10px; cursor: pointer; background: transparent;">Delete</button>
+                                            </form>
+                                        </div>
                                     </div>
                                     
                                     <!-- Course Lessons -->
@@ -783,5 +967,129 @@ foreach ($enrolled_students_raw as $row) {
         </div>
 
     </div>
+
+    <!-- Edit Course Modal -->
+    <div id="editCourseModal" class="lms-modal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.65); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); align-items: center; justify-content: center;">
+        <div class="dashboard-card" style="width: 90%; max-width: 500px; margin: auto; border: 1px solid var(--glass-border); background: var(--glass-bg); padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                <h3 style="font-family: 'Outfit', sans-serif; margin: 0; font-size: 20px; color: var(--text-main);">Edit Course</h3>
+                <span onclick="closeEditCourseModal()" style="cursor: pointer; font-size: 24px; color: var(--text-muted); font-weight: bold; line-height: 1;">&times;</span>
+            </div>
+            <form action="admin_dashboard.php?tab=lms" method="POST" class="lms-form">
+                <input type="hidden" id="edit_course_id" name="course_id">
+                
+                <div class="lms-form-group" style="margin-bottom: 15px;">
+                    <label for="edit_title" style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 13.5px;">Course Title</label>
+                    <input type="text" id="edit_title" name="title" required class="lms-input" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.1); color: var(--text-main);">
+                </div>
+                
+                <div class="lms-form-group" style="margin-bottom: 15px;">
+                    <label for="edit_module_id" style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 13.5px;">Associated Module</label>
+                    <select id="edit_module_id" name="module_id" required class="lms-select" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.1); color: var(--text-main);">
+                        <?php foreach ($modules_list as $mod): ?>
+                            <option value="<?php echo $mod['id']; ?>"><?php echo htmlspecialchars($mod['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="lms-form-group" style="margin-bottom: 15px;">
+                    <label for="edit_grade_level" style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 13.5px;">Class / Grade Level</label>
+                    <select id="edit_grade_level" name="grade_level" required class="lms-select" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.1); color: var(--text-main);">
+                        <option value="Grade 6">Grade 6</option>
+                        <option value="Grade 7">Grade 7</option>
+                        <option value="Grade 8">Grade 8</option>
+                        <option value="Grade 9">Grade 9</option>
+                        <option value="Grade 10">Grade 10</option>
+                        <option value="Grade 11 (O/L)">Grade 11 (O/L)</option>
+                        <option value="Advanced Level (A/L)">Advanced Level (A/L)</option>
+                    </select>
+                </div>
+                
+                <div class="lms-form-group" style="margin-bottom: 15px;">
+                    <label for="edit_description" style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 13.5px;">Course Description</label>
+                    <textarea id="edit_description" name="description" rows="3" class="lms-textarea" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.1); color: var(--text-main);"></textarea>
+                </div>
+                
+                <div class="lms-form-group" style="margin-bottom: 15px;">
+                    <label for="edit_teacher_id" style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 13.5px;">Assign Teacher</label>
+                    <select id="edit_teacher_id" name="teacher_id" class="lms-select" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.1); color: var(--text-main);">
+                        <option value="">Select Teacher (Unassigned)</option>
+                        <?php foreach ($approved_teachers as $t): ?>
+                            <option value="<?php echo htmlspecialchars($t['teacherid']); ?>"><?php echo htmlspecialchars($t['fullname']); ?> (<?php echo htmlspecialchars($t['teacherid']); ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="lms-form-group" style="margin-bottom: 15px;">
+                    <label for="edit_is_paid" style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 13.5px;">Payment Type</label>
+                    <select id="edit_is_paid" name="is_paid" class="lms-select" onchange="togglePriceField(this.value, 'edit_price_group', 'edit_price')" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.1); color: var(--text-main);">
+                        <option value="0">Free</option>
+                        <option value="1">Paid</option>
+                    </select>
+                </div>
+                
+                <div class="lms-form-group" id="edit_price_group" style="margin-bottom: 20px; display: none;">
+                    <label for="edit_price" style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 13.5px;">Price (Sri Lankan Rupees - LKR)</label>
+                    <input type="number" id="edit_price" name="price" class="lms-input" min="0" step="0.01" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.1); color: var(--text-main);">
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 25px;">
+                    <button type="button" onclick="closeEditCourseModal()" class="lp-btn lp-btn-outline" style="flex: 1; cursor: pointer; text-align: center; justify-content: center;">Cancel</button>
+                    <button type="submit" name="edit_course" class="lp-btn lp-btn-primary" style="flex: 1; border: none; cursor: pointer; text-align: center; justify-content: center;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    function togglePriceField(val, groupId, inputId) {
+        var priceGroup = document.getElementById(groupId);
+        var priceInput = document.getElementById(inputId);
+        if (val == "1") {
+            priceGroup.style.display = "block";
+            priceInput.required = true;
+        } else {
+            priceGroup.style.display = "none";
+            priceInput.required = false;
+            priceInput.value = "";
+        }
+    }
+
+    function openEditCourseModal(course) {
+        document.getElementById('edit_course_id').value = course.id;
+        document.getElementById('edit_title').value = course.title;
+        document.getElementById('edit_module_id').value = course.module_id;
+        document.getElementById('edit_grade_level').value = course.grade_level || 'Grade 11 (O/L)';
+        document.getElementById('edit_description').value = course.description || '';
+        document.getElementById('edit_teacher_id').value = course.teacher_id || '';
+        document.getElementById('edit_is_paid').value = course.is_paid;
+        
+        var priceInput = document.getElementById('edit_price');
+        priceInput.value = course.price;
+        
+        if (course.is_paid == "1") {
+            document.getElementById('edit_price_group').style.display = "block";
+            priceInput.required = true;
+        } else {
+            document.getElementById('edit_price_group').style.display = "none";
+            priceInput.required = false;
+        }
+        
+        var modal = document.getElementById('editCourseModal');
+        modal.style.display = "flex";
+    }
+
+    function closeEditCourseModal() {
+        document.getElementById('editCourseModal').style.display = "none";
+    }
+
+    // Close modal when clicking outside content area
+    window.onclick = function(event) {
+        var modal = document.getElementById('editCourseModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+    </script>
 </body>
 </html>

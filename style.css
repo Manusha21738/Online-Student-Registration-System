@@ -363,6 +363,11 @@ body {
     opacity: 0.8;
     letter-spacing: normal;
 }
+@media (max-width: 1200px) {
+    .lp-logo-tagline {
+        display: none;
+    }
+}
 
 .lp-categories {
     font-size: 15px;
@@ -373,6 +378,7 @@ body {
 
 .lp-search-bar {
     flex-grow: 1;
+    max-width: 480px;
     display: flex;
     align-items: center;
     background-color: transparent;
@@ -1451,3 +1457,332 @@ body {
 [data-theme="dark"] .lms-completion-tick {
     color: #10b981;
 }
+
+/* Syllabus Explorer Tabs & Cards Styles */
+.syllabus-tabs-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+    overflow-x: auto;
+    padding: 0.5rem;
+}
+.syllabus-tabs {
+    display: flex;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--border-color);
+    padding: 6px;
+    border-radius: 30px;
+    gap: 5px;
+    backdrop-filter: blur(10px);
+}
+[data-theme="dark"] .syllabus-tabs {
+    background: rgba(255, 255, 255, 0.03);
+}
+.syllabus-tab-btn {
+    padding: 10px 24px;
+    border-radius: 25px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+.syllabus-tab-btn:hover {
+    color: var(--text-main);
+    background: rgba(0, 0, 0, 0.05);
+}
+[data-theme="dark"] .syllabus-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+.syllabus-tab-btn.active {
+    background: var(--primary);
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(6, 78, 59, 0.25);
+}
+[data-theme="dark"] .syllabus-tab-btn.active {
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.syllabus-subjects-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 1rem;
+}
+@media (max-width: 992px) {
+    .syllabus-subjects-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.syllabus-subject-column {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.syllabus-subject-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 12px;
+}
+.syllabus-subject-header .subject-icon {
+    font-size: 1.8rem;
+}
+.syllabus-subject-header h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+.syllabus-courses-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.syllabus-course-row-card {
+    background: rgba(0, 0, 0, 0.01);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+[data-theme="dark"] .syllabus-course-row-card {
+    background: rgba(255, 255, 255, 0.01);
+}
+.syllabus-course-row-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    border-color: var(--primary);
+}
+.row-card-body {
+    flex-grow: 1;
+    text-align: left;
+}
+.row-card-body h4 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 5px;
+}
+.row-card-body p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-bottom: 10px;
+}
+.row-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+.row-price {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+.row-price.free {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+.row-price.paid {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--secondary);
+}
+.row-instructor {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.syllabus-row-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary);
+    color: white !important;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 8px;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+}
+.syllabus-row-btn:hover {
+    opacity: 0.9;
+}
+.syllabus-empty-state {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.9rem;
+    background: rgba(0, 0, 0, 0.01);
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+}
+[data-theme="dark"] .syllabus-empty-state {
+    background: rgba(255, 255, 255, 0.01);
+}
+
+/* =========================================================
+   ADDITIONAL MODERN DASHBOARD STYLES (COLORFUL & PREMIUM)
+   ========================================================= */
+
+/* Hero Banner Layout with Colorful Graphic */
+.dashboard-header {
+    background-size: cover !important;
+    background-position: center !important;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+}
+
+/* Glassmorphic Tabs Selector */
+.dashboard-tabs {
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 0;
+    position: sticky;
+    top: 70px;
+    z-index: 999;
+}
+
+/* Card Accent Colors */
+.card-accent-blue { border-top: 4px solid #3b82f6 !important; }
+.card-accent-purple { border-top: 4px solid #8b5cf6 !important; }
+.card-accent-pink { border-top: 4px solid #ec4899 !important; }
+.card-accent-green { border-top: 4px solid #10b981 !important; }
+.card-accent-amber { border-top: 4px solid #f59e0b !important; }
+
+/* Custom Dashboard Table */
+.custom-dashboard-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+    margin-top: 10px;
+}
+
+.custom-dashboard-table th {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.custom-dashboard-table tr.table-row-card {
+    background: var(--glass-bg);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+[data-theme="light"] .custom-dashboard-table tr.table-row-card {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="dark"] .custom-dashboard-table tr.table-row-card {
+    background: rgba(30, 41, 59, 0.4);
+}
+
+.custom-dashboard-table tr.table-row-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="dark"] .custom-dashboard-table tr.table-row-card:hover {
+    background: rgba(30, 41, 59, 0.85);
+}
+
+.custom-dashboard-table td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+.custom-dashboard-table td strong {
+    color: var(--text-main);
+}
+
+.custom-dashboard-table td:first-child {
+    border-left: 1px solid var(--border-color);
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+.custom-dashboard-table td:last-child {
+    border-right: 1px solid var(--border-color);
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* Colorful Badge Customizations */
+.lms-badge {
+    padding: 4px 10px !important;
+    border-radius: 8px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lms-badge-module {
+    background: rgba(59, 130, 246, 0.15) !important;
+    color: #3b82f6 !important;
+}
+
+.lms-badge-grade {
+    background: rgba(139, 92, 246, 0.15) !important;
+    color: #8b5cf6 !important;
+}
+
+.lms-badge-free {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #10b981 !important;
+}
+
+.lms-badge-paid {
+    background: rgba(236, 72, 153, 0.15) !important;
+    color: #ec4899 !important;
+}
+
+/* Modern Hover Animations for Grid Cards */
+.interactive-card {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+

@@ -94,6 +94,7 @@ $stmtModules = $pdo->prepare("
     ORDER BY m.id ASC
 ");
 $stmtModules->execute([':tid' => $teacher['teacherid']]);
+$modules = $stmtModules->fetchAll(PDO::FETCH_ASSOC);
 $approved_module_ids = [];
 foreach ($modules as $m) {
     if ($m['status'] === 'approved') {
@@ -101,17 +102,15 @@ foreach ($modules as $m) {
     }
 }
 
-$teacher_courses = [];
-if (!empty($approved_module_ids)) {
-    $in_query = implode(',', $approved_module_ids);
-    $teacher_courses = $pdo->query("
-        SELECT c.*, m.name as module_name 
-        FROM course c 
-        JOIN module m ON c.module_id = m.id 
-        WHERE c.module_id IN ($in_query) 
-        ORDER BY c.title ASC
-    ")->fetchAll(PDO::FETCH_ASSOC);
-}
+$stmtTC = $pdo->prepare("
+    SELECT c.*, m.name as module_name 
+    FROM course c 
+    JOIN module m ON c.module_id = m.id 
+    WHERE c.teacher_id = :tid 
+    ORDER BY c.title ASC
+");
+$stmtTC->execute([':tid' => $teacher['teacherid']]);
+$teacher_courses = $stmtTC->fetchAll(PDO::FETCH_ASSOC);
 
 $teacher_course_ids = array_column($teacher_courses, 'id');
 $teacher_lessons = [];

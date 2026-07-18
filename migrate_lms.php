@@ -59,12 +59,21 @@ try {
         CREATE TABLE IF NOT EXISTS student_course (
             student_id VARCHAR(50) NOT NULL,
             course_id INT NOT NULL,
+            status VARCHAR(20) DEFAULT 'approved',
             enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (student_id, course_id),
             FOREIGN KEY (student_id) REFERENCES student(studentid) ON DELETE CASCADE,
             FOREIGN KEY (course_id) REFERENCES course(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
+    
+    // Add status column dynamically if it doesn't exist
+    try {
+        $pdo->exec("ALTER TABLE student_course ADD COLUMN status VARCHAR(20) DEFAULT 'approved' AFTER course_id");
+        echo "Dynamically added status column to student_course table.\n";
+    } catch (PDOException $e) {
+        // Suppress if already exists
+    }
     echo "Student course enrollment table is ready.\n\n";
 
     // 4. Create lesson_completion table
@@ -81,113 +90,8 @@ try {
     ");
     echo "Lesson completion table is ready.\n\n";
 
-    // 5. Seed default courses
-    echo "Step 5: Seeding default courses...\n";
-    
-    // Get module IDs
-    $stmtMod = $pdo->query("SELECT id, name FROM module");
-    $modules = $stmtMod->fetchAll(PDO::FETCH_KEY_PAIR);
-    
-    // Find matching modules
-    $webDevId = array_search('Web Development', $modules);
-    $dataScienceId = array_search('Data Science', $modules);
-    $aiId = array_search('Artificial Intelligence', $modules);
-
-    if ($webDevId) {
-        $stmtCourse = $pdo->prepare("INSERT INTO course (module_id, title, description) VALUES (:mid, :title, :desc)");
-        
-        // Course 1
-        $stmtCourse->execute([
-            ':mid' => $webDevId,
-            ':title' => 'Modern HTML5 & CSS3 Masterclass',
-            ':desc' => 'Learn the foundation of web design. Master Semantic HTML5, CSS Grid, Flexbox, transitions, and dark-mode designs from scratch.'
-        ]);
-        $c1Id = $pdo->lastInsertId();
-        
-        $stmtLesson = $pdo->prepare("INSERT INTO lesson (course_id, title, content, video_url, order_num) VALUES (:cid, :title, :content, :video, :order)");
-        $stmtLesson->execute([
-            ':cid' => $c1Id,
-            ':title' => 'Introduction to HTML5 and Semantic Elements',
-            ':content' => 'HTML5 semantic elements provide structural meaning to your web layout. Elements like header, nav, main, section, article, and footer are crucial for SEO and accessibility.',
-            ':video' => 'https://www.youtube.com/embed/UB1O30zR-EE',
-            ':order' => 1
-        ]);
-        
-        $stmtLesson->execute([
-            ':cid' => $c1Id,
-            ':title' => 'CSS Grid & Flexbox Layouts',
-            ':content' => 'Understand the core concepts of CSS Flexbox and Grid. Flexbox is designed for one-dimensional layouts (row or column), whereas Grid is designed for two-dimensional layouts.',
-            ':video' => 'https://www.youtube.com/embed/jV8B24rSN5o',
-            ':order' => 2
-        ]);
-        
-        // Course 2
-        $stmtCourse->execute([
-            ':mid' => $webDevId,
-            ':title' => 'Full-Stack JavaScript Developer Bootcamp',
-            ':desc' => 'Go from beginner to advanced JavaScript developer. Learn modern ES6+, Node.js, Express, databases, and dynamic single-page web applications.'
-        ]);
-        $c2Id = $pdo->lastInsertId();
-        $stmtLesson->execute([
-            ':cid' => $c2Id,
-            ':title' => 'JavaScript ES6+ Syntax & Core Concepts',
-            ':content' => 'Learn Arrow Functions, Destructuring, Spread/Rest operators, Template Literals, Promises, and Async/Await in modern JavaScript.',
-            ':video' => 'https://www.youtube.com/embed/W6NZfCO5SIk',
-            ':order' => 1
-        ]);
-    }
-
-    if ($dataScienceId) {
-        $stmtCourse = $pdo->prepare("INSERT INTO course (module_id, title, description) VALUES (:mid, :title, :desc)");
-        $stmtCourse->execute([
-            ':mid' => $dataScienceId,
-            ':title' => 'Python for Data Analysis and Visualization',
-            ':desc' => 'Understand numpy arrays, pandas dataframes, matplolib plotting, and data cleaning pipelines to drive data insights.'
-        ]);
-        $c3Id = $pdo->lastInsertId();
-        
-        $stmtLesson = $pdo->prepare("INSERT INTO lesson (course_id, title, content, video_url, order_num) VALUES (:cid, :title, :content, :video, :order)");
-        $stmtLesson->execute([
-            ':cid' => $c3Id,
-            ':title' => 'Getting Started with Pandas DataFrames',
-            ':content' => 'Pandas is the leading data analysis library in Python. Learn how to import CSV files, filter rows, handle missing values, and calculate summary statistics.',
-            ':video' => 'https://www.youtube.com/embed/vmEHCJof1kU',
-            ':order' => 1
-        ]);
-    }
-
-    if ($aiId) {
-        $stmtCourse = $pdo->prepare("INSERT INTO course (module_id, title, description) VALUES (:mid, :title, :desc)");
-        $stmtCourse->execute([
-            ':mid' => $aiId,
-            ':title' => 'Introduction to Neural Networks and Deep Learning',
-            ':desc' => 'Dive into artificial intelligence! Build a neural network from the ground up, understand perceptrons, forward propagation, and backpropagation.'
-        ]);
-        $c4Id = $pdo->lastInsertId();
-        
-        $stmtLesson = $pdo->prepare("INSERT INTO lesson (course_id, title, content, video_url, order_num) VALUES (:cid, :title, :content, :video, :order)");
-        $stmtLesson->execute([
-            ':cid' => $c4Id,
-            ':title' => 'Perceptrons and Gradient Descent',
-            ':content' => 'A perceptron is the basic unit of a neural network. Gradient Descent is the mathematical optimization technique used to minimize the cost function by adjusting weights.',
-            ':video' => 'https://www.youtube.com/embed/IHZwWFHWa-w',
-            ':order' => 1
-        ]);
-    }
-
-    // 6. Enroll existing students in at least one course so they have something in "My Learning"
-    echo "Step 6: Enrolling existing students in default courses...\n";
-    $students = $pdo->query("SELECT studentid FROM student")->fetchAll(PDO::FETCH_COLUMN);
-    $courses = $pdo->query("SELECT id FROM course")->fetchAll(PDO::FETCH_COLUMN);
-    
-    if (!empty($students) && !empty($courses)) {
-        $stmtEnroll = $pdo->prepare("INSERT INTO student_course (student_id, course_id) VALUES (:sid, :cid) ON DUPLICATE KEY UPDATE student_id=student_id");
-        foreach ($students as $sid) {
-            // Enroll every student in the first course
-            $stmtEnroll->execute([':sid' => $sid, ':cid' => $courses[0]]);
-            echo "Enrolled student $sid in course ID $courses[0]\n";
-        }
-    }
+    // 5. Seed default courses (removed non-relevant courses)
+    echo "Step 5: Seeding default courses skipped (curriculum is managed in migrate_curriculum.php).\n";
 
     echo "\nLMS Database Migration completed successfully!\n";
 

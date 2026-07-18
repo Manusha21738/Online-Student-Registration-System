@@ -89,11 +89,8 @@ try {
     // 5. Seed default modules
     echo "Step 5: Seeding default modules...\n";
     $modules = [
-        'Web Development',
-        'Data Science',
-        'Software Engineering',
-        'Cloud Computing',
-        'Artificial Intelligence'
+        'ICT',
+        'Mathematics'
     ];
     $stmtModule = $pdo->prepare("INSERT INTO module (name) VALUES (:name) ON DUPLICATE KEY UPDATE name=name");
     foreach ($modules as $mod) {
