@@ -508,7 +508,7 @@ foreach ($enrolled_students_raw as $row) {
 
         <?php if ($active_tab === 'registrations'): ?>
             <!-- Pending Teacher Applications -->
-            <div class="dashboard-card">
+            <div class="dashboard-card card-accent-purple">
                 <div class="dashboard-card-header">
                     <h3 style="font-family: 'Outfit', sans-serif;">Pending Teacher Applications (<?php echo count($pending_teachers); ?>)</h3>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Review and approve teachers to grant them dashboard and module request access.</p>
@@ -551,7 +551,7 @@ foreach ($enrolled_students_raw as $row) {
             </div>
 
             <!-- Pending Module requests -->
-            <div class="dashboard-card">
+            <div class="dashboard-card card-accent-blue">
                 <div class="dashboard-card-header">
                     <h3 style="font-family: 'Outfit', sans-serif;">Pending Module Teaching Requests (<?php echo count($pending_modules); ?>)</h3>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Approve or reject module assignments requested by approved teachers.</p>
@@ -588,7 +588,7 @@ foreach ($enrolled_students_raw as $row) {
             </div>
 
             <!-- Pending Student Course Enrollments -->
-            <div class="dashboard-card" style="grid-column: span 2;">
+            <div class="dashboard-card card-accent-pink" style="grid-column: span 2;">
                 <div class="dashboard-card-header">
                     <h3 style="font-family: 'Outfit', sans-serif;">Pending Student Course Enrollments (<?php echo count($pending_enrollments); ?>)</h3>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Review student requests and verify bank transfer slip attachments before activating course enrollment.</p>
@@ -599,20 +599,20 @@ foreach ($enrolled_students_raw as $row) {
                         <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 20px;">No pending course enrollment requests.</p>
                     <?php else: ?>
                         <div style="overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: 'Inter', sans-serif; font-size: 14px;">
+                            <table class="custom-dashboard-table">
                                 <thead>
-                                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-main); font-weight: 600;">
-                                        <th style="padding: 12px;">Student Details</th>
-                                        <th style="padding: 12px;">Course Details</th>
-                                        <th style="padding: 12px;">Price (LKR)</th>
-                                        <th style="padding: 12px;">Payment Slip</th>
-                                        <th style="padding: 12px;">Request Date</th>
-                                        <th style="padding: 12px; text-align: center;">Actions</th>
+                                    <tr>
+                                        <th>Student Details</th>
+                                        <th>Course Details</th>
+                                        <th>Price (LKR)</th>
+                                        <th>Payment Slip</th>
+                                        <th>Request Date</th>
+                                        <th style="text-align: center;">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($pending_enrollments as $pe): ?>
-                                        <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
+                                        <tr class="table-row-card">
                                             <td style="padding: 12px;">
                                                 <div style="font-weight: 600; color: var(--text-main);"><?php echo htmlspecialchars($pe['student_name']); ?></div>
                                                 <div style="font-size: 12px;">ID: <?php echo htmlspecialchars($pe['student_id']); ?></div>
@@ -667,7 +667,7 @@ foreach ($enrolled_students_raw as $row) {
             </div>
 
             <!-- Approved Teachers & Modules Overview -->
-            <div class="dashboard-card" style="grid-column: span 2;">
+            <div class="dashboard-card card-accent-green" style="grid-column: span 2;">
                 <div class="dashboard-card-header">
                     <h3 style="font-family: 'Outfit', sans-serif;">Approved Teachers Overview</h3>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">A complete overview of approved teachers and their corresponding teaching modules.</p>
@@ -678,19 +678,19 @@ foreach ($enrolled_students_raw as $row) {
                         <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 20px;">No approved teachers in the system.</p>
                     <?php else: ?>
                         <div style="overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: 'Inter', sans-serif; font-size: 14px;">
+                            <table class="custom-dashboard-table">
                                 <thead>
-                                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted);">
-                                        <th style="padding: 12px;">ID</th>
-                                        <th style="padding: 12px;">Name & NIC</th>
-                                        <th style="padding: 12px;">Contact Details</th>
-                                        <th style="padding: 12px;">Qualifications & Address</th>
-                                        <th style="padding: 12px;">Teaching Modules</th>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name & NIC</th>
+                                        <th>Contact Details</th>
+                                        <th>Qualifications & Address</th>
+                                        <th>Teaching Modules</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($approved_teachers as $at): ?>
-                                        <tr style="border-bottom: 1px solid var(--border-color);">
+                                        <tr class="table-row-card">
                                             <td style="padding: 12px; font-weight: 600;"><?php echo htmlspecialchars($at['teacherid']); ?></td>
                                             <td style="padding: 12px;">
                                                 <div style="font-weight: 500; color: var(--text-main);"><?php echo htmlspecialchars($at['fullname']); ?></div>
