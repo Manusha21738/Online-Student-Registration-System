@@ -665,8 +665,17 @@ if (count($name_parts) > 1) {
                         ?>
                             <div class="lms-card">
                                 <div class="lms-card-content">
-                                    <div style="background: <?php echo $gradients[$mc['id'] % count($gradients)]; ?>; display: flex; align-items: center; justify-content: center; height: 140px; border-radius: 12px; margin-bottom: 18px; padding: 15px; position: relative;">
-                                        <span style="color: white; font-weight: 700; font-size: 16px; text-align: center; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"><?php echo htmlspecialchars($mc['title']); ?></span>
+                                    <?php 
+                                    $has_photo = !empty($mc['photo']) && file_exists('uploads/' . $mc['photo']);
+                                    $banner_style = $has_photo 
+                                        ? "background: url('uploads/" . htmlspecialchars($mc['photo']) . "') no-repeat center center; background-size: cover;" 
+                                        : "background: " . $gradients[$mc['id'] % count($gradients)] . ";";
+                                    ?>
+                                    <div style="<?php echo $banner_style; ?> display: flex; align-items: center; justify-content: center; height: 140px; border-radius: 12px; margin-bottom: 18px; padding: 15px; position: relative; overflow: hidden;">
+                                        <?php if ($has_photo): ?>
+                                            <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.35); z-index: 1;"></div>
+                                        <?php endif; ?>
+                                        <span style="color: white; font-weight: 700; font-size: 16px; text-align: center; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 2;"><?php echo htmlspecialchars($mc['title']); ?></span>
                                     </div>
                                     <span class="lms-badge lms-badge-module" style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-block; margin-bottom: 5px;"><?php echo htmlspecialchars($mc['module_name']); ?></span>
                                     <h4><?php echo htmlspecialchars($mc['title']); ?></h4>
@@ -710,8 +719,17 @@ if (count($name_parts) > 1) {
                         ?>
                             <div class="lms-card" style="opacity: 0.9; border-style: dashed; border-color: #f59e0b;">
                                 <div class="lms-card-content">
-                                    <div style="background: <?php echo $gradients_pending[0]; ?>; display: flex; align-items: center; justify-content: center; height: 140px; border-radius: 12px; margin-bottom: 18px; padding: 15px; position: relative;">
-                                        <span style="color: white; font-weight: 700; font-size: 16px; text-align: center; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"><?php echo htmlspecialchars($pc['title']); ?></span>
+                                    <?php 
+                                    $has_photo = !empty($pc['photo']) && file_exists('uploads/' . $pc['photo']);
+                                    $banner_style = $has_photo 
+                                        ? "background: url('uploads/" . htmlspecialchars($pc['photo']) . "') no-repeat center center; background-size: cover;" 
+                                        : "background: " . $gradients_pending[0] . ";";
+                                    ?>
+                                    <div style="<?php echo $banner_style; ?> display: flex; align-items: center; justify-content: center; height: 140px; border-radius: 12px; margin-bottom: 18px; padding: 15px; position: relative; overflow: hidden;">
+                                        <?php if ($has_photo): ?>
+                                            <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.35); z-index: 1;"></div>
+                                        <?php endif; ?>
+                                        <span style="color: white; font-weight: 700; font-size: 16px; text-align: center; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 2;"><?php echo htmlspecialchars($pc['title']); ?></span>
                                     </div>
                                     <div style="margin-bottom: 8px;">
                                         <span class="lms-badge" style="background: rgba(245, 158, 11, 0.1); color: #d97706; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-block; text-transform: uppercase;">Pending Approval</span>
@@ -783,8 +801,17 @@ if (count($name_parts) > 1) {
                         ?>
                             <div class="lms-card">
                                 <div class="lms-card-content">
-                                    <div style="background: <?php echo $gradients_catalog[$cc['id'] % count($gradients_catalog)]; ?>; display: flex; align-items: center; justify-content: center; height: 140px; border-radius: 12px; margin-bottom: 18px; padding: 15px; position: relative;">
-                                        <span style="color: white; font-weight: 700; font-size: 16px; text-align: center; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"><?php echo htmlspecialchars($cc['title']); ?></span>
+                                    <?php 
+                                    $has_photo = !empty($cc['photo']) && file_exists('uploads/' . $cc['photo']);
+                                    $banner_style = $has_photo 
+                                        ? "background: url('uploads/" . htmlspecialchars($cc['photo']) . "') no-repeat center center; background-size: cover;" 
+                                        : "background: " . $gradients_catalog[$cc['id'] % count($gradients_catalog)] . ";";
+                                    ?>
+                                    <div style="<?php echo $banner_style; ?> display: flex; align-items: center; justify-content: center; height: 140px; border-radius: 12px; margin-bottom: 18px; padding: 15px; position: relative; overflow: hidden;">
+                                        <?php if ($has_photo): ?>
+                                            <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.35); z-index: 1;"></div>
+                                        <?php endif; ?>
+                                        <span style="color: white; font-weight: 700; font-size: 16px; text-align: center; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 2;"><?php echo htmlspecialchars($cc['title']); ?></span>
                                     </div>
                                     <span class="lms-badge lms-badge-module" style="background: rgba(14, 116, 144, 0.1); color: #0284c7; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-block; margin-bottom: 5px;"><?php echo htmlspecialchars($cc['module_name']); ?></span>
                                     <span class="lms-badge" style="background: <?php echo $cc['is_paid'] ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)'; ?>; color: <?php echo $cc['is_paid'] ? 'var(--secondary)' : '#10b981'; ?>; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: 5px; display: inline-block; margin-bottom: 5px;">

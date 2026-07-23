@@ -10,6 +10,14 @@
     
     --btn-start: #047857;
     --btn-end: #064e3b;
+    
+    /* Backend Dashboard Customizations */
+    --bg-card: rgba(255, 255, 255, 0.92);
+    --border-color: rgba(99, 102, 241, 0.15);
+    --header-grad-start: rgba(79, 70, 229, 0.85);
+    --header-grad-middle: rgba(124, 58, 237, 0.85);
+    --header-grad-end: rgba(219, 39, 119, 0.9);
+    --card-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.08), 0 8px 16px -6px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="dark"] {
@@ -24,6 +32,14 @@
     
     --btn-start: #059669;
     --btn-end: #022c22;
+    
+    /* Backend Dashboard Customizations */
+    --bg-card: rgba(30, 41, 59, 0.75);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --header-grad-start: rgba(49, 46, 129, 0.85);
+    --header-grad-middle: rgba(76, 29, 149, 0.85);
+    --header-grad-end: rgba(131, 24, 67, 0.9);
+    --card-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -316,11 +332,15 @@ body {
     position: fixed;
     top: 0; left: 0; right: 0;
     height: 72px;
-    background-color: var(--bg-base);
+    background-color: var(--bg-card, var(--bg-base));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     z-index: 1000;
     display: flex;
     align-items: center;
+    border-bottom: 1px solid var(--border-color, transparent);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 [data-theme="dark"] .lp-navbar {
@@ -795,21 +815,40 @@ body {
    DASHBOARD & PROFILE STYLES
    ========================================================= */
 .dashboard-body {
-    background-color: #f8fafc;
+    background-color: #f5f3ff;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 50% 0%, rgba(236, 72, 153, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(20, 184, 166, 0.15) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.15) 0px, transparent 50%);
+    background-attachment: fixed;
+    background-size: cover;
     min-height: 100vh;
+    transition: background-color 0.3s ease;
 }
 [data-theme="dark"] .dashboard-body {
-    background-color: #0f172a;
+    background-color: #090514;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.25) 0px, transparent 50%),
+        radial-gradient(at 50% 0%, rgba(236, 72, 153, 0.2) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(20, 184, 166, 0.25) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.25) 0px, transparent 50%);
+    background-attachment: fixed;
+    background-size: cover;
 }
 
 .dashboard-header {
-    background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+    background: linear-gradient(135deg, var(--header-grad-start) 0%, var(--header-grad-middle) 50%, var(--header-grad-end) 100%), url('assets/dashboard_cover.jpg') no-repeat center center;
+    background-size: cover !important;
+    background-position: center !important;
     padding: 60px 20px 40px;
     color: white;
     margin-top: 70px; /* Offset for fixed navbar */
-}
-[data-theme="dark"] .dashboard-body .dashboard-header {
-    background: linear-gradient(135deg, #022c22 0%, #01140f 100%);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.15);
 }
 
 .dashboard-container {
@@ -934,15 +973,17 @@ body {
 
 /* Dashboard Navigation Tabs */
 .dashboard-tabs {
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
-    padding: 0 20px;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 20px;
     display: flex;
     justify-content: center;
-}
-[data-theme="dark"] .dashboard-body .dashboard-tabs {
-    background: #1e293b;
-    border-bottom: 1px solid #334155;
+    position: sticky;
+    top: 70px;
+    z-index: 999;
+    transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .dashboard-tabs-container {
@@ -988,16 +1029,14 @@ body {
 }
 
 .dashboard-card {
-    background: white;
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border-radius: 16px;
     padding: 30px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    border: 1px solid #f1f5f9;
-}
-[data-theme="dark"] .dashboard-body .dashboard-card {
-    background: #1e293b;
-    border-color: #334155;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dashboard-card-header {
@@ -1662,17 +1701,7 @@ body {
     background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
 }
 
-/* Glassmorphic Tabs Selector */
-.dashboard-tabs {
-    background: var(--bg-card);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border-color);
-    padding: 10px 0;
-    position: sticky;
-    top: 70px;
-    z-index: 999;
-}
+/* Glassmorphic Tabs Selector - Unified with main declaration */
 
 /* Card Accent Colors */
 .card-accent-blue { border-top: 4px solid #3b82f6 !important; }
@@ -1705,7 +1734,7 @@ body {
 }
 
 [data-theme="light"] .custom-dashboard-table tr.table-row-card {
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.9);
 }
 
 [data-theme="dark"] .custom-dashboard-table tr.table-row-card {

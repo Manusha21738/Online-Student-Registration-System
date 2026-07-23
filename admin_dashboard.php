@@ -94,6 +94,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_module'])) {
     }
 }
 
+// Handle Add Module Request
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_module'])) {
+    $module_name = trim($_POST['module_name'] ?? '');
+    
+    if (empty($module_name)) {
+        $error_msg = "Module name is required.";
+    } else {
+        try {
+            $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM module WHERE name = :name");
+            $stmtCheck->execute([':name' => $module_name]);
+            if ($stmtCheck->fetchColumn() > 0) {
+                $error_msg = "Module name already exists.";
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO module (name) VALUES (:name)");
+                $stmt->execute([':name' => $module_name]);
+                $success_msg = "Module added successfully!";
+                header("Location: admin_dashboard.php?tab=registrations&success=" . urlencode($success_msg));
+                exit();
+            }
+        } catch (PDOException $e) {
+            $error_msg = "Failed to add module: " . $e->getMessage();
+        }
+    }
+}
+
 // --- LMS Action Handlers ---
 
 // File upload helper
@@ -134,12 +159,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_course'])) {
         $price = 0.00;
     }
     
+    // Handle Photo upload
+    $photo = null;
+    if (isset($_FILES['course_photo']) && $_FILES['course_photo']['error'] === UPLOAD_ERR_OK) {
+        $photo = uploadAttachment('course_photo', ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+    }
+    
     if (empty($title) || $module_id <= 0) {
         $error_msg = "Course title and module are required.";
     } else {
         try {
-            $stmt = $pdo->prepare("INSERT INTO course (module_id, grade_level, teacher_id, title, description, is_paid, price) VALUES (:mid, :grade, :tid, :title, :desc, :is_paid, :price)");
-            $stmt->execute([':mid' => $module_id, ':grade' => $grade_level, ':tid' => $teacher_id, ':title' => $title, ':desc' => $description, ':is_paid' => $is_paid, ':price' => $price]);
+            $stmt = $pdo->prepare("INSERT INTO course (module_id, grade_level, teacher_id, title, description, is_paid, price, photo) VALUES (:mid, :grade, :tid, :title, :desc, :is_paid, :price, :photo)");
+            $stmt->execute([':mid' => $module_id, ':grade' => $grade_level, ':tid' => $teacher_id, ':title' => $title, ':desc' => $description, ':is_paid' => $is_paid, ':price' => $price, ':photo' => $photo]);
             $success_msg = "Course created successfully!";
             header("Location: admin_dashboard.php?tab=lms&success=" . urlencode($success_msg));
             exit();
@@ -169,7 +200,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_course'])) {
         $error_msg = "Course title and module are required.";
     } else {
         try {
-            $stmt = $pdo->prepare("UPDATE course SET module_id = :mid, grade_level = :grade, teacher_id = :tid, title = :title, description = :desc, is_paid = :is_paid, price = :price WHERE id = :cid");
+            // Fetch current photo
+            $stmtOld = $pdo->prepare("SELECT photo FROM course WHERE id = :cid");
+            $stmtOld->execute([':cid' => $cid]);
+            $old_photo = $stmtOld->fetchColumn();
+            
+            $photo = $old_photo;
+            if (isset($_FILES['course_photo']) && $_FILES['course_photo']['error'] === UPLOAD_ERR_OK) {
+                $new_photo = uploadAttachment('course_photo', ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+                if ($new_photo) {
+                    $photo = $new_photo;
+                    if ($old_photo && file_exists('uploads/' . $old_photo)) {
+                        @unlink('uploads/' . $old_photo);
+                    }
+                }
+            }
+            
+            $stmt = $pdo->prepare("UPDATE course SET module_id = :mid, grade_level = :grade, teacher_id = :tid, title = :title, description = :desc, is_paid = :is_paid, price = :price, photo = :photo WHERE id = :cid");
             $stmt->execute([
                 ':mid' => $module_id,
                 ':grade' => $grade_level,
@@ -178,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_course'])) {
                 ':desc' => $description,
                 ':is_paid' => $is_paid,
                 ':price' => $price,
+                ':photo' => $photo,
                 ':cid' => $cid
             ]);
             $success_msg = "Course updated successfully!";
@@ -461,7 +509,7 @@ foreach ($enrolled_students_raw as $row) {
     </header>
 
     <!-- Dashboard Hero Banner -->
-    <div class="dashboard-header" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%), url('assets/dashboard_cover.jpg') no-repeat center center; background-size: cover;">
+    <div class="dashboard-header">
         <div class="dashboard-container profile-hero">
             <div class="profile-avatar-container">
                 <div class="profile-avatar" style="background: var(--secondary);">
@@ -728,6 +776,41 @@ foreach ($enrolled_students_raw as $row) {
                     <?php endif; ?>
                 </div>
             </div>
+
+            <!-- Manage Course Modules Card -->
+            <div class="dashboard-card card-accent-blue" style="grid-column: span 2;">
+                <div class="dashboard-card-header">
+                    <h3 style="font-family: 'Outfit', sans-serif;">Manage Course Modules</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Add new academic modules to the system.</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px; margin-top: 1.5rem; flex-wrap: wrap;">
+                    <!-- Left: Form to Add Module -->
+                    <form action="admin_dashboard.php?tab=registrations" method="POST" class="lms-form" style="margin: 0; display: flex; flex-direction: column; gap: 15px;">
+                        <div class="lms-form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                            <label for="module_name" style="font-size: 13.5px; font-weight: 500; color: var(--text-main);">New Module Name</label>
+                            <input type="text" id="module_name" name="module_name" required class="lms-input" placeholder="e.g. Science & Technology" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.05); color: var(--text-main);">
+                        </div>
+                        <button type="submit" name="add_module" class="lp-btn lp-btn-primary" style="border: none; cursor: pointer; padding: 12px; font-weight: 600; font-size: 14px; width: 100%;">Add Module</button>
+                    </form>
+                    
+                    <!-- Right: Current Modules list -->
+                    <div>
+                        <h4 style="font-family: 'Outfit', sans-serif; font-size: 15px; margin-bottom: 12px; color: var(--text-main); font-weight: 600;">Active Modules (<?php echo count($modules_list); ?>)</h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 180px; overflow-y: auto; padding: 12px; background: rgba(0, 0, 0, 0.02); border: 1px dashed var(--border-color); border-radius: 12px;">
+                            <?php if (empty($modules_list)): ?>
+                                <p style="color: var(--text-muted); font-style: italic; font-size: 13px;">No modules exist yet.</p>
+                            <?php else: ?>
+                                <?php foreach ($modules_list as $m): ?>
+                                    <span style="display: inline-flex; align-items: center; background: rgba(99, 102, 241, 0.12); color: #6366f1; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;">
+                                        📚 <?php echo htmlspecialchars($m['name']); ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
         <?php elseif ($active_tab === 'lms'): ?>
             <!-- LMS Course & Lesson Panel -->
             <!-- Left Panel: Create Course / Create Lesson Form -->
@@ -737,7 +820,7 @@ foreach ($enrolled_students_raw as $row) {
                     <div class="dashboard-card-header">
                         <h3 style="font-family: 'Outfit', sans-serif;">Create New Course</h3>
                     </div>
-                    <form action="admin_dashboard.php?tab=lms" method="POST" class="lms-form">
+                    <form action="admin_dashboard.php?tab=lms" method="POST" enctype="multipart/form-data" class="lms-form">
                         <div class="lms-form-group">
                             <label for="title">Course Title</label>
                             <input type="text" id="title" name="title" required class="lms-input" placeholder="e.g. Intro to CSS Flexbox">
@@ -767,6 +850,10 @@ foreach ($enrolled_students_raw as $row) {
                         <div class="lms-form-group">
                             <label for="description">Course Description</label>
                             <textarea id="description" name="description" rows="3" class="lms-textarea" placeholder="Provide a brief course description..."></textarea>
+                        </div>
+                        <div class="lms-form-group">
+                            <label for="course_photo">Course Cover Image / Profile Picture</label>
+                            <input type="file" id="course_photo" name="course_photo" accept="image/*" class="lms-input" style="padding: 8px;">
                         </div>
                         <div class="lms-form-group">
                             <label for="teacher_id">Assign Teacher</label>
@@ -873,7 +960,27 @@ foreach ($enrolled_students_raw as $row) {
                             <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 20px;">No courses created yet.</p>
                         <?php else: ?>
                             <?php foreach ($courses_list as $c): ?>
-                                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 15px;">
+                                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 15px;">
+                                    <?php 
+                                    $gradients_catalog = [
+                                        'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                                        'linear-gradient(135deg, #0c4a6e 0%, #0c4a6e 100%)',
+                                        'linear-gradient(135deg, #0f766e 0%, #115e59 100%)',
+                                        'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
+                                        'linear-gradient(135deg, #be185d 0%, #9d174d 100%)',
+                                        'linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%)'
+                                    ];
+                                    $has_photo = !empty($c['photo']) && file_exists('uploads/' . $c['photo']);
+                                    $banner_style = $has_photo 
+                                        ? "background: url('uploads/" . htmlspecialchars($c['photo']) . "') no-repeat center center; background-size: cover;" 
+                                        : "background: " . $gradients_catalog[$c['id'] % count($gradients_catalog)] . ";";
+                                    ?>
+                                    <div style="<?php echo $banner_style; ?> display: flex; align-items: center; justify-content: center; height: 100px; border-radius: 8px; position: relative; overflow: hidden; padding: 10px;">
+                                        <?php if ($has_photo): ?>
+                                            <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.3); z-index: 1;"></div>
+                                        <?php endif; ?>
+                                        <span style="color: white; font-weight: 700; font-size: 14px; text-align: center; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 2;"><?php echo htmlspecialchars($c['title']); ?></span>
+                                    </div>
                                     <div style="display: flex; justify-content: space-between; align-items: start; gap: 15px;">
                                         <div>
                                             <span class="lms-badge lms-badge-module" style="margin-bottom: 6px;"><?php echo htmlspecialchars($c['module_name']); ?></span>
@@ -975,7 +1082,7 @@ foreach ($enrolled_students_raw as $row) {
                 <h3 style="font-family: 'Outfit', sans-serif; margin: 0; font-size: 20px; color: var(--text-main);">Edit Course</h3>
                 <span onclick="closeEditCourseModal()" style="cursor: pointer; font-size: 24px; color: var(--text-muted); font-weight: bold; line-height: 1;">&times;</span>
             </div>
-            <form action="admin_dashboard.php?tab=lms" method="POST" class="lms-form">
+            <form action="admin_dashboard.php?tab=lms" method="POST" enctype="multipart/form-data" class="lms-form">
                 <input type="hidden" id="edit_course_id" name="course_id">
                 
                 <div class="lms-form-group" style="margin-bottom: 15px;">
@@ -1008,6 +1115,17 @@ foreach ($enrolled_students_raw as $row) {
                 <div class="lms-form-group" style="margin-bottom: 15px;">
                     <label for="edit_description" style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 13.5px;">Course Description</label>
                     <textarea id="edit_description" name="description" rows="3" class="lms-textarea" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.1); color: var(--text-main);"></textarea>
+                </div>
+                
+                <!-- Current Cover Image Preview -->
+                <div id="edit_photo_preview_container" style="margin-bottom: 15px; display: none;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 13.5px; color: var(--text-main);">Current Cover Image</label>
+                    <img id="edit_photo_preview" src="" alt="Course Cover" style="width: 120px; height: 70px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-color);">
+                </div>
+
+                <div class="lms-form-group" style="margin-bottom: 15px;">
+                    <label for="edit_course_photo" style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 13.5px; color: var(--text-main);">Update Cover Image / Profile Picture (Optional)</label>
+                    <input type="file" id="edit_course_photo" name="course_photo" accept="image/*" class="lms-input" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.1); color: var(--text-main);">
                 </div>
                 
                 <div class="lms-form-group" style="margin-bottom: 15px;">
@@ -1073,6 +1191,16 @@ foreach ($enrolled_students_raw as $row) {
         } else {
             document.getElementById('edit_price_group').style.display = "none";
             priceInput.required = false;
+        }
+        
+        // Show current cover image preview if exists
+        var previewContainer = document.getElementById('edit_photo_preview_container');
+        var previewImg = document.getElementById('edit_photo_preview');
+        if (course.photo) {
+            previewImg.src = 'uploads/' + course.photo;
+            previewContainer.style.display = 'block';
+        } else {
+            previewContainer.style.display = 'none';
         }
         
         var modal = document.getElementById('editCourseModal');

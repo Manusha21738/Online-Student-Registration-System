@@ -20,6 +20,7 @@ try {
             teacher_id VARCHAR(50) DEFAULT NULL,
             title VARCHAR(255) NOT NULL,
             description TEXT DEFAULT NULL,
+            photo VARCHAR(255) DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (module_id) REFERENCES module(id) ON DELETE CASCADE,
             FOREIGN KEY (teacher_id) REFERENCES teacher(teacherid) ON DELETE SET NULL
@@ -31,6 +32,14 @@ try {
         $pdo->exec("ALTER TABLE course ADD COLUMN teacher_id VARCHAR(50) DEFAULT NULL AFTER module_id");
         $pdo->exec("ALTER TABLE course ADD CONSTRAINT fk_course_teacher FOREIGN KEY (teacher_id) REFERENCES teacher(teacherid) ON DELETE SET NULL");
         echo "Dynamically added teacher_id column to course table.\n";
+    } catch (PDOException $e) {
+        // Suppress if already exists
+    }
+    
+    // Add photo column dynamically if it doesn't exist
+    try {
+        $pdo->exec("ALTER TABLE course ADD COLUMN photo VARCHAR(255) DEFAULT NULL AFTER description");
+        echo "Dynamically added photo column to course table.\n";
     } catch (PDOException $e) {
         // Suppress if already exists
     }
