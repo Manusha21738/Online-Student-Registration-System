@@ -87,7 +87,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // 5. Send a verification email
             // Note: Sending email via local XAMPP might not work without proper SMTP configuration in php.ini
             // Create the verification link
-            $verifyLink = "http://localhost/Online-Student-Registration-System/verify.php?email=" . urlencode($email) . "&token=" . $verification_token;
+            $verifyLink = "http://localhost/Vits-EDU/verify.php?email=" . urlencode($email) . "&token=" . $verification_token;
 
             $to = $email;
             $subject = "Verify Your Email - Student Registration";

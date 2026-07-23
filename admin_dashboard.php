@@ -237,6 +237,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_course'])) {
     }
 }
 
+// Quick Assign Course (Module & Teacher)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_assign'])) {
+    $cid = (int)($_POST['course_id'] ?? 0);
+    $module_id = (int)($_POST['module_id'] ?? 0);
+    $teacher_id = trim($_POST['teacher_id'] ?? '');
+    if ($teacher_id === '') $teacher_id = null;
+    
+    if ($cid > 0 && $module_id > 0) {
+        try {
+            $stmt = $pdo->prepare("UPDATE course SET module_id = :mid, teacher_id = :tid WHERE id = :cid");
+            $stmt->execute([
+                ':mid' => $module_id,
+                ':tid' => $teacher_id,
+                ':cid' => $cid
+            ]);
+            $success_msg = "Course assigned successfully!";
+            header("Location: admin_dashboard.php?tab=modules&success=" . urlencode($success_msg));
+            exit();
+        } catch (PDOException $e) {
+            $error_msg = "Failed to assign course: " . $e->getMessage();
+        }
+    } else {
+        $error_msg = "Invalid course or module selection.";
+    }
+}
+
 // Delete Course
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_course'])) {
     $cid = (int)($_POST['course_id'] ?? 0);
@@ -475,6 +501,26 @@ $enrolled_students = [];
 foreach ($enrolled_students_raw as $row) {
     $enrolled_students[$row['course_id']][] = $row;
 }
+
+// Fetch all students details for Student Directory
+$all_students = [];
+$stmtStudents = $pdo->query("
+    SELECT s.*, p.name as programme_name, COUNT(sc.course_id) as enrolled_count 
+    FROM student s
+    JOIN programme p ON s.programid = p.id
+    LEFT JOIN student_course sc ON s.studentid = sc.student_id AND sc.status = 'approved'
+    GROUP BY s.studentid
+    ORDER BY s.studentid DESC
+");
+$all_students = $stmtStudents->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch all teachers list for Teacher Directory
+$all_teachers = [];
+$stmtAllTeachers = $pdo->query("
+    SELECT * FROM teacher 
+    ORDER BY is_approved ASC, teacherid DESC
+");
+$all_teachers = $stmtAllTeachers->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -533,8 +579,11 @@ foreach ($enrolled_students_raw as $row) {
     ?>
     <div class="dashboard-tabs">
         <div class="dashboard-tabs-container">
-            <a href="admin_dashboard.php?tab=registrations" class="tab-link <?php echo $active_tab === 'registrations' ? 'active' : ''; ?>">Registrations & Modules</a>
-            <a href="admin_dashboard.php?tab=lms" class="tab-link <?php echo $active_tab === 'lms' ? 'active' : ''; ?>">Course & Lesson Management</a>
+            <a href="admin_dashboard.php?tab=registrations" class="tab-link <?php echo $active_tab === 'registrations' ? 'active' : ''; ?>">Registrations & Approvals</a>
+            <a href="admin_dashboard.php?tab=lms" class="tab-link <?php echo $active_tab === 'lms' ? 'active' : ''; ?>">Courses & Lessons</a>
+            <a href="admin_dashboard.php?tab=students" class="tab-link <?php echo $active_tab === 'students' ? 'active' : ''; ?>">Students Directory</a>
+            <a href="admin_dashboard.php?tab=teachers" class="tab-link <?php echo $active_tab === 'teachers' ? 'active' : ''; ?>">Teachers Directory</a>
+            <a href="admin_dashboard.php?tab=modules" class="tab-link <?php echo $active_tab === 'modules' ? 'active' : ''; ?>">Modules & Assignments</a>
         </div>
     </div>
 
@@ -1062,6 +1111,287 @@ foreach ($enrolled_students_raw as $row) {
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
+                </div>
+            </div>
+        <?php elseif ($active_tab === 'students'): ?>
+            <!-- Students Directory Card -->
+            <div class="dashboard-card card-accent-purple" style="grid-column: span 2;">
+                <div class="dashboard-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <h3 style="font-family: 'Outfit', sans-serif;">Registered Students Directory</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Review and manage all registered students enrolled in VitsEDU.</p>
+                    </div>
+                    <span style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6; padding: 6px 16px; border-radius: 30px; font-weight: 700; font-size: 13.5px;">
+                        Total: <?php echo count($all_students); ?> Students
+                    </span>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <?php if (empty($all_students)): ?>
+                        <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 30px;">No registered students found.</p>
+                    <?php else: ?>
+                        <div style="overflow-x: auto;">
+                            <table class="custom-dashboard-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Photo</th>
+                                        <th>Full Name</th>
+                                        <th>Email Address</th>
+                                        <th>Programme of Study</th>
+                                        <th>Year Registered</th>
+                                        <th>Active Enrollments</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($all_students as $st): ?>
+                                        <tr class="table-row-card">
+                                            <td style="padding: 12px; font-weight: 700; color: var(--text-main);"><?php echo htmlspecialchars($st['studentid']); ?></td>
+                                            <td style="padding: 12px;">
+                                                <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(99, 102, 241, 0.1); border: 2px solid var(--border-color);">
+                                                    <?php if (!empty($st['photo']) && file_exists('uploads/' . $st['photo'])): ?>
+                                                        <img src="uploads/<?php echo htmlspecialchars($st['photo']); ?>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
+                                                    <?php else: ?>
+                                                        <span style="font-weight: 600; font-size: 14px; color: var(--primary);"><?php echo strtoupper(substr($st['fullname'], 0, 2)); ?></span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                            <td style="padding: 12px; font-weight: 600; color: var(--text-main);"><?php echo htmlspecialchars($st['fullname']); ?></td>
+                                            <td style="padding: 12px; font-size: 13.5px;"><?php echo htmlspecialchars($st['email']); ?></td>
+                                            <td style="padding: 12px; font-size: 13.5px; color: var(--text-main); font-weight: 500;"><?php echo htmlspecialchars($st['programme_name']); ?></td>
+                                            <td style="padding: 12px; font-size: 13.5px;"><?php echo htmlspecialchars($st['yearofregister']); ?></td>
+                                            <td style="padding: 12px; font-weight: 700; text-align: center;">
+                                                <span style="display: inline-block; background: rgba(99, 102, 241, 0.1); color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 12px;">
+                                                    <?php echo $st['enrolled_count']; ?> Courses
+                                                </span>
+                                            </td>
+                                            <td style="padding: 12px;">
+                                                <?php if ($st['is_verified']): ?>
+                                                    <span style="display: inline-block; background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700;">Verified</span>
+                                                <?php else: ?>
+                                                    <span style="display: inline-block; background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700;">Unverified</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+        <?php elseif ($active_tab === 'teachers'): ?>
+            <!-- Teachers Directory Card -->
+            <div class="dashboard-card card-accent-green" style="grid-column: span 2;">
+                <div class="dashboard-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <h3 style="font-family: 'Outfit', sans-serif;">Registered Teachers Directory</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Review and manage all teaching staff accounts and approval status.</p>
+                    </div>
+                    <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 6px 16px; border-radius: 30px; font-weight: 700; font-size: 13.5px;">
+                        Total: <?php echo count($all_teachers); ?> Teachers
+                    </span>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <?php if (empty($all_teachers)): ?>
+                        <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 30px;">No registered teachers found.</p>
+                    <?php else: ?>
+                        <div style="overflow-x: auto;">
+                            <table class="custom-dashboard-table">
+                                <thead>
+                                    <tr>
+                                        <th>Teacher ID</th>
+                                        <th>Full Name & NIC</th>
+                                        <th>Contact Details</th>
+                                        <th>Qualifications</th>
+                                        <th>Postal Address</th>
+                                        <th>Assigned Modules</th>
+                                        <th>Approval Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($all_teachers as $t): ?>
+                                        <tr class="table-row-card">
+                                            <td style="padding: 12px; font-weight: 700; color: var(--text-main);"><?php echo htmlspecialchars($t['teacherid']); ?></td>
+                                            <td style="padding: 12px;">
+                                                <div style="font-weight: 600; color: var(--text-main);"><?php echo htmlspecialchars($t['fullname']); ?></div>
+                                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">NIC: <?php echo htmlspecialchars($t['nic']); ?></div>
+                                            </td>
+                                            <td style="padding: 12px; font-size: 13.5px;">
+                                                <div><?php echo htmlspecialchars($t['email']); ?></div>
+                                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Tel: <?php echo htmlspecialchars($t['phone']); ?></div>
+                                            </td>
+                                            <td style="padding: 12px; font-size: 13px; max-width: 200px;" title="<?php echo htmlspecialchars($t['qualifications']); ?>">
+                                                <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                                                    <?php echo htmlspecialchars($t['qualifications']); ?>
+                                                </div>
+                                            </td>
+                                            <td style="padding: 12px; font-size: 13px; max-width: 180px;" title="<?php echo htmlspecialchars($t['address']); ?>">
+                                                <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                                                    <?php echo htmlspecialchars($t['address']); ?>
+                                                </div>
+                                            </td>
+                                            <td style="padding: 12px;">
+                                                <?php 
+                                                $t_mods = $approved_modules[$t['teacherid']] ?? [];
+                                                if (empty($t_mods)) {
+                                                    echo '<span style="color: var(--text-muted); font-style: italic; font-size: 12px;">None assigned yet</span>';
+                                                } else {
+                                                    foreach ($t_mods as $tm) {
+                                                        echo '<span style="display: inline-block; background: rgba(59,130,246,0.1); color: var(--secondary); padding: 2px 8px; border-radius: 8px; font-size: 12px; font-weight: 600; margin-right: 5px; margin-bottom: 5px;">' . htmlspecialchars($tm) . '</span>';
+                                                    }
+                                                }
+                                                ?>
+                                            </td>
+                                            <td style="padding: 12px;">
+                                                <?php if ($t['is_approved']): ?>
+                                                    <span style="display: inline-block; background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700;">Approved</span>
+                                                <?php else: ?>
+                                                    <span style="display: inline-block; background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700;">Pending</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+        <?php elseif ($active_tab === 'modules'): ?>
+            <!-- Module List Card -->
+            <div class="dashboard-card card-accent-blue" style="grid-column: span 2;">
+                <div class="dashboard-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <h3 style="font-family: 'Outfit', sans-serif;">Academic Modules Overview</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Review all active academic modules configured in the database catalog.</p>
+                    </div>
+                    <span style="background: rgba(59, 130, 246, 0.15); color: var(--secondary); padding: 6px 16px; border-radius: 30px; font-weight: 700; font-size: 13.5px;">
+                        Total: <?php echo count($modules_list); ?> Modules
+                    </span>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <?php if (empty($modules_list)): ?>
+                        <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 30px;">No academic modules created yet.</p>
+                    <?php else: ?>
+                        <div style="overflow-x: auto;">
+                            <table class="custom-dashboard-table">
+                                <thead>
+                                    <tr>
+                                        <th>Module ID</th>
+                                        <th>Module Name</th>
+                                        <th>Associated Courses</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($modules_list as $m): ?>
+                                        <?php 
+                                        // Count courses under this module
+                                        $courses_in_module = array_filter($courses_list, function($c) use ($m) {
+                                            return $c['module_id'] == $m['id'];
+                                        });
+                                        ?>
+                                        <tr class="table-row-card">
+                                            <td style="padding: 12px; font-weight: 700; color: var(--text-main);"><?php echo $m['id']; ?></td>
+                                            <td style="padding: 12px; font-weight: 600; color: var(--text-main); font-size: 15px;">📚 <?php echo htmlspecialchars($m['name']); ?></td>
+                                            <td style="padding: 12px;">
+                                                <?php if (empty($courses_in_module)): ?>
+                                                    <span style="color: var(--text-muted); font-style: italic; font-size: 12.5px;">No courses associated yet</span>
+                                                <?php else: ?>
+                                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                                        <?php foreach ($courses_in_module as $cc): ?>
+                                                            <span style="display: inline-block; background: rgba(99, 102, 241, 0.1); color: var(--primary); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 500;">
+                                                                <?php echo htmlspecialchars($cc['title']); ?>
+                                                            </span>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Course Assignment & Alignment Card -->
+            <div class="dashboard-card card-accent-purple" style="grid-column: span 2; margin-top: 10px;">
+                <div class="dashboard-card-header">
+                    <h3 style="font-family: 'Outfit', sans-serif;">Assign & Align Courses</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Assign courses to modules and instructors on the fly.</p>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <?php if (empty($courses_list)): ?>
+                        <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 30px;">No courses created to assign.</p>
+                    <?php else: ?>
+                        <div style="overflow-x: auto;">
+                            <table class="custom-dashboard-table">
+                                <thead>
+                                    <tr>
+                                        <th>Course Name</th>
+                                        <th>Class / Grade</th>
+                                        <th>Type & Price</th>
+                                        <th>Quick Module & Teacher Assignment</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($courses_list as $c): ?>
+                                        <tr class="table-row-card">
+                                            <td style="padding: 12px;">
+                                                <div style="font-weight: 600; color: var(--text-main); font-size: 14.5px;"><?php echo htmlspecialchars($c['title']); ?></div>
+                                            </td>
+                                            <td style="padding: 12px; font-weight: 500; font-size: 13px;">
+                                                <?php echo htmlspecialchars($c['grade_level'] ?? 'Grade 11 (O/L)'); ?>
+                                            </td>
+                                            <td style="padding: 12px; font-size: 13px; font-weight: 600;">
+                                                <?php echo $c['is_paid'] ? '<span style="color: var(--secondary);">LKR ' . number_format($c['price'], 2) . '</span>' : '<span style="color: #10b981;">Free</span>'; ?>
+                                            </td>
+                                            <td style="padding: 12px;">
+                                                <form action="admin_dashboard.php?tab=modules" method="POST" style="margin: 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                                                    <input type="hidden" name="course_id" value="<?php echo $c['id']; ?>">
+                                                    
+                                                    <!-- Module Selector -->
+                                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                                        <span style="font-size: 10px; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Academic Module</span>
+                                                        <select name="module_id" required class="lms-select" style="padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.05); color: var(--text-main); min-width: 180px;">
+                                                            <?php foreach ($modules_list as $mod): ?>
+                                                                <option value="<?php echo $mod['id']; ?>" <?php echo $mod['id'] == $c['module_id'] ? 'selected' : ''; ?>>
+                                                                    <?php echo htmlspecialchars($mod['name']); ?>
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                    
+                                                    <!-- Teacher Selector -->
+                                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                                        <span style="font-size: 10px; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Assigned Instructor</span>
+                                                        <select name="teacher_id" class="lms-select" style="padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.05); color: var(--text-main); min-width: 180px;">
+                                                            <option value="">Select Teacher (Unassigned)</option>
+                                                            <?php foreach ($approved_teachers as $t): ?>
+                                                                <option value="<?php echo htmlspecialchars($t['teacherid']); ?>" <?php echo $t['teacherid'] == $c['teacher_id'] ? 'selected' : ''; ?>>
+                                                                    <?php echo htmlspecialchars($t['fullname']); ?> (<?php echo htmlspecialchars($t['teacherid']); ?>)
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                    
+                                                    <button type="submit" name="quick_assign" class="lp-btn lp-btn-primary" style="padding: 10px 18px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 14px;">Assign</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         <?php endif; ?>

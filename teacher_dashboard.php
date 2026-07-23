@@ -454,7 +454,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 20px;">No courses assigned under your approved teaching modules.</p>
                         <?php else: ?>
                             <?php foreach ($teacher_courses as $tc): ?>
-                                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 15px;">
+                                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 15px;">
+                                    <?php 
+                                    $gradients_catalog = [
+                                        'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                                        'linear-gradient(135deg, #0c4a6e 0%, #0c4a6e 100%)',
+                                        'linear-gradient(135deg, #0f766e 0%, #115e59 100%)',
+                                        'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
+                                        'linear-gradient(135deg, #be185d 0%, #9d174d 100%)',
+                                        'linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%)'
+                                    ];
+                                    $has_photo = !empty($tc['photo']) && file_exists('uploads/' . $tc['photo']);
+                                    $banner_style = $has_photo 
+                                        ? "background: url('uploads/" . htmlspecialchars($tc['photo']) . "') no-repeat center center; background-size: cover;" 
+                                        : "background: " . $gradients_catalog[$tc['id'] % count($gradients_catalog)] . ";";
+                                    ?>
+                                    <div style="<?php echo $banner_style; ?> display: flex; align-items: center; justify-content: center; height: 100px; border-radius: 8px; position: relative; overflow: hidden; padding: 10px;">
+                                        <?php if ($has_photo): ?>
+                                            <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.3); z-index: 1;"></div>
+                                        <?php endif; ?>
+                                        <span style="color: white; font-weight: 700; font-size: 14px; text-align: center; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 2;"><?php echo htmlspecialchars($tc['title']); ?></span>
+                                    </div>
                                     <div>
                                         <span class="lms-badge lms-badge-module" style="margin-bottom: 6px;"><?php echo htmlspecialchars($tc['module_name']); ?></span>
                                         <h4 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 18px; color: var(--text-main);"><?php echo htmlspecialchars($tc['title']); ?></h4>
